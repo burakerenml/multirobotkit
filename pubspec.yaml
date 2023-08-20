@@ -13,6 +13,7 @@ dependencies:
   syncfusion_flutter_maps: ^22.1.38
   latlong2: ^0.9.0
   gamepads: ^0.1.1
+  camera_macos: ^0.0.6+5
   
 
 dev_dependencies:

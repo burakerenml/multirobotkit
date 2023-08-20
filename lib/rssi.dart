@@ -14,7 +14,7 @@ SerialPort serialPort = SerialPort(dropdownValue);
 bool isTransmitter = false;
 int counter=0;
 class _RssiPageState extends State<RssiPage> {
-  final int numberOfMarkers = 3;
+  final int numberOfMarkers = 2;
   late List<Model> _data;
   late List<Widget> _iconsList;
   late final _CustomZoomPanBehavior _mapZoomPanBehavior= _CustomZoomPanBehavior();
@@ -27,11 +27,10 @@ class _RssiPageState extends State<RssiPage> {
   @override
   void initState() {
     _data = <Model>[
-    Model("0xf1",40.988967, 29.052070),
-    Model("0xff",40.987893, 29.052688),
-    Model("0x2",40.987909, 29.051341)
+    Model("1",40.988967, 29.052070),
+    Model("2",40.987893, 29.052688),
 
-,
+
   ];
 
   _iconsList = <Widget>[
@@ -45,12 +44,6 @@ class _RssiPageState extends State<RssiPage> {
       "assets/images/opa.png",
       width: 50,
       height: 50,
-      
-      ),
-    Image.asset(
-      "assets/images/zehiricon.png",
-      width: 70,
-      height: 70,
       
       ),
     
@@ -69,6 +62,7 @@ class _RssiPageState extends State<RssiPage> {
   }
   @override
   void dispose() {
+    debugPrint("page closed");
     serialPort.close();
     super.dispose();
   }
@@ -187,6 +181,7 @@ Stream<dynamic> readPort = (() async* {
                         focusColor: Colors.white,
                         autofocus: false,
                         value: dropdownValue,
+                        
                         icon: const Icon(Icons.usb),
                         style: const TextStyle(color: Colors.black),
                         underline: Container(
@@ -256,6 +251,7 @@ Stream<dynamic> readPort = (() async* {
                           backgroundColor: Colors.black,
                           child: const Icon(Icons.gamepad),
                           onPressed:() {
+                            serialPort.close();
                             Navigator.push(
     context,
     MaterialPageRoute(builder: (context) => const ControlPage()),
@@ -266,6 +262,7 @@ Stream<dynamic> readPort = (() async* {
                           ),
                         ),
                       ),
+
                       Padding(
                         padding: currentWidth < 1200 ? EdgeInsets.symmetric(horizontal: currentWidth*0.007) : EdgeInsets.symmetric(horizontal: currentWidth*0.02),
                         child: SizedBox(
@@ -312,7 +309,7 @@ Stream<dynamic> readPort = (() async* {
                     ),
 
                     height: currentHeight*0.8,
-                    width: currentWidth*0.35,
+                    width: currentWidth*0.36,
                     child: StreamBuilder<dynamic>(
                       stream: readPort.asBroadcastStream(),
                       builder: (context, snapshot) {
@@ -518,7 +515,7 @@ Stream<dynamic> readPort = (() async* {
                                         width: temp == "waiting for data"|| temp == null || isTransmitter == true ? 0:currentWidth*0.025,
                                         height: currentHeight*0.03,
                                         decoration: BoxDecoration(
-                                          color: temp != null && int.tryParse(data["temp"].substring(3)!) !=null ? (int.parse(data["temp"].substring(3)) > 30 ? Colors.red : (int.parse(data["temp"].substring(3)) > 15 ? Colors.orange.shade400 : Colors.blue)) : Colors.grey ,
+                                          color: temp != null && double.tryParse(data["temp"].substring(3)!) !=null ? (double.parse(temp!.substring(0,3)) > 30 ? Colors.red : (double.parse(temp!.substring(0,3)) > 15 ? Colors.orange.shade400 : Colors.blue)) : Colors.grey ,
                                           borderRadius: BorderRadius.circular(20)
                                         ),
                                       )
@@ -612,8 +609,11 @@ Stream<dynamic> readPort = (() async* {
                         }
                         catch(e){
                           debugPrint(e.toString());
+                
+                          //Future.delayed(Duration(seconds: 2));
+                          //readPort.asBroadcastStream();
+                          return Center(child: Text(e.toString()),);
                           
-                          return const Center(child: Text("We can't read this port"),);
                           
 
                           
@@ -649,7 +649,7 @@ Stream<dynamic> readPort = (() async* {
           initialFocalLatLng: const MapLatLng(40.989290, 29.051665),
           controller: _controller,
           zoomPanBehavior: _mapZoomPanBehavior,
-          initialMarkersCount: 3,
+          initialMarkersCount: 2,
             markerBuilder: (BuildContext context, int index) {
               return MapMarker(
                 latitude: _data[index].latitude,
