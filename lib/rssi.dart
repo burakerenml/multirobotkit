@@ -177,7 +177,7 @@ Stream<dynamic> readPort = (() async* {
           }
           else if(receivedData.contains("end")){
             debugPrint(robot.toString());
-            if(robot["hum"] !=null && robot["nh3"] !=null && robot["robotID"] !=null && robot["rssi"] !=null && robot["co"] !=null && robot["no2"] !=null && robot["p"] !=null && robot["temp"] !=null ){
+            if(isTransmitter==false && robot["nh3"] !=null && robot["robotID"] !=null && robot["rssi"] !=null && robot["co"] !=null && robot["no2"] !=null && robot["p"] !=null && robot["temp"] !=null ){
               yield robot;
             }
             else if(isTransmitter==true && robot["robotID"] !=null && robot["rssi"] !=null  ){
