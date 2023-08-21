@@ -3,6 +3,7 @@ import 'package:flutter_libserialport/flutter_libserialport.dart';
 import 'package:multirobotkit_desktop_app/control.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
 import "dart:math";
+import 'dart:async';
 class RssiPage extends StatefulWidget {
   const RssiPage({super.key});
 
@@ -14,6 +15,7 @@ SerialPort serialPort = SerialPort(dropdownValue);
 bool isTransmitter = false;
 int counter=0;
 class _RssiPageState extends State<RssiPage> {
+  late StreamSubscription<dynamic> streamSubscription;
   final int numberOfMarkers = 2;
   late List<Model> _data;
   late List<Widget> _iconsList;
@@ -21,14 +23,72 @@ class _RssiPageState extends State<RssiPage> {
   late final MapTileLayerController _controller= MapTileLayerController();
   List<DropdownMenuItem<String>> dropDownItems = []; 
   List<String> itemString = [];
-  String? rssi,temp,pressure,hum,robot,co,no2,nh3;
+  String? rssi,temp,pressure,hum,robotID,co,no2,nh3;
   String basili="none";
   
   @override
   void initState() {
+    streamSubscription = readPort.listen((snapshot) {
+        
+                        //dynamic data = snapshot.data as Map<String,String>;
+                        try{
+                        robotID=snapshot["robotID"];
+                        bool? deneme = robotID?.contains(basili);
+                        debugPrint(deneme.toString());
+                        if(isTransmitter==true){
+                          //num distance = pow(10, ((-91 - double.parse(data["rssi"])) / (10 * 2)));
+                          //rssi= distance.toStringAsFixed(2);
+                          rssi= snapshot["rssi"]+"dbm";
+                    
+                        }
+                        else if(deneme!=null){
+                        if(deneme){
+                        // ignore: non_constant_identifier_names
+                        setState(() {
+                        // ignore: non_constant_identifier_names
+                        Random CO = Random();
+                        int coo = CO.nextInt(2)+3; 
+                        int noo2 = 0; 
+                        Random nh3r = Random();
+                        int nhh3 = nh3r.nextInt(3)+2; 
+                        Random tempr = Random();
+                        int tempp = tempr.nextInt(2)+2; 
+                        Random pressurer = Random();
+                        int pressuree = pressurer.nextInt(9); 
+                        Random humr = Random();
+                        int humm = humr.nextInt(3); 
+                        rssi=snapshot["rssi"];
+                        co="$coo";
+                        no2="$noo2";
+                        nh3="$nhh3";
+                        temp="25.$tempp";
+                        pressure="101$pressuree";
+                        hum="52.$humm";
+                        });
+
+                        }
+                        
+                        
+                        }
+                        }
+                        on Exception catch(e){
+                        debugPrint(e.toString());
+                        rssi="unavaible";
+                        co="unavaible";
+                        no2="unavaible";
+                        nh3="unavaible";
+                        temp="unavaible";
+                        pressure="unavaible";
+                        hum="unavaible";
+                        }
+
+
+
+  });
+  
     _data = <Model>[
-    Model("1",40.988967, 29.052070),
-    Model("2",40.987893, 29.052688),
+    Model("1",50.843935, 4.357525),
+    Model("2",50.844555, 4.356540),
 
 
   ];
@@ -60,12 +120,6 @@ class _RssiPageState extends State<RssiPage> {
   }
     super.initState();
   }
-  @override
-  void dispose() {
-    debugPrint("page closed");
-    serialPort.close();
-    super.dispose();
-  }
   void writePosition(Offset position) {
   MapLatLng tappedPoint = MapLatLng(double.parse(_controller.pixelToLatLng(position).latitude.toStringAsFixed(6)), double.parse(_controller.pixelToLatLng(position).longitude.toStringAsFixed(6)));
   
@@ -85,12 +139,11 @@ class _RssiPageState extends State<RssiPage> {
 
 
 Stream<dynamic> readPort = (() async* {
-  
   Map<String,String> robot= {};
   String receivedData = "";
   
   try {
-    serialPort.open(mode: SerialPortMode.read);
+    serialPort.open(mode: SerialPortMode.readWrite);
     
     while (true) {
       String receivedChar = String.fromCharCodes(serialPort.read(1));
@@ -141,7 +194,15 @@ Stream<dynamic> readPort = (() async* {
       await Future<void>.delayed(const Duration(milliseconds: 5));
     }
   } catch (e) {
-    yield "Failed to open serial port: $e";
+    robot["robotID"] = "unavaible";
+    robot["rssi"] = "unavaible";
+    robot["co"] = "unavaible";
+    robot["no2"] = "unavaible";
+    robot["nh3"] = "unavaible";
+    robot["temp"] = "unavaible";
+    robot["p"] = "unavaible";
+    robot["hum"] = "unavaible";
+    yield robot;
   }
 })().asBroadcastStream();
 
@@ -216,7 +277,7 @@ Stream<dynamic> readPort = (() async* {
                           child: const Icon(Icons.refresh),
                           onPressed:() {
                             //debugPrint(itemString.toString());
-                            
+                            streamSubscription.resume();
                             setState(() {
                               
                               for(var availablePort in SerialPort.availablePorts){
@@ -251,8 +312,10 @@ Stream<dynamic> readPort = (() async* {
                           backgroundColor: Colors.black,
                           child: const Icon(Icons.gamepad),
                           onPressed:() {
-                            serialPort.close();
+                                debugPrint("page closed");
+    streamSubscription.pause();
                             Navigator.push(
+                              
     context,
     MaterialPageRoute(builder: (context) => const ControlPage()),
   );
@@ -310,53 +373,7 @@ Stream<dynamic> readPort = (() async* {
 
                     height: currentHeight*0.8,
                     width: currentWidth*0.36,
-                    child: StreamBuilder<dynamic>(
-                      stream: readPort.asBroadcastStream(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(color: Colors.black,));
-                    } 
-                      if (snapshot.hasError) {
-                        return const Text('Error');
-                      } else if (snapshot.hasData) {
-                        try{
-                        dynamic data = snapshot.data as Map<String,String>;
-                        robot=data["robotID"];
-                        bool? deneme = robot?.contains(basili);
-                        debugPrint(deneme.toString());
-                        if(isTransmitter==true){
-                          //num distance = pow(10, ((-91 - double.parse(data["rssi"])) / (10 * 2)));
-                          //rssi= distance.toStringAsFixed(2);
-                          rssi= data["rssi"]+"dbm";
-                    
-                        }
-                        else if(deneme!=null){
-                        if(deneme){
-                        // ignore: non_constant_identifier_names
-                        Random CO = Random();
-                        int coo = CO.nextInt(2)+3; 
-                        int noo2 = 0; 
-                        Random nh3r = Random();
-                        int nhh3 = nh3r.nextInt(3)+2; 
-                        Random tempr = Random();
-                        int tempp = tempr.nextInt(2)+2; 
-                        Random pressurer = Random();
-                        int pressuree = pressurer.nextInt(9); 
-                        Random humr = Random();
-                        int humm = humr.nextInt(3); 
-                        rssi=data["rssi"] + "dbm";
-                        co="$coo""ppm";
-                        no2="$noo2""ppm";
-                        nh3="$nhh3""ppm";
-                        temp="25.$tempp""°C";
-                        pressure="101$pressuree""hpa";
-                        hum="52.$humm""%";
-                        }
-                        
-                        
-                        }
-                        
-                        return Column(
+                    child: Column(
                 
                             children: [
                               Expanded(
@@ -374,7 +391,7 @@ Stream<dynamic> readPort = (() async* {
                                           color: Colors.deepPurple.shade900,
                                           fontFamily: "Satoshi"
                                                                        ),
-                                                                      isTransmitter==false ? "Selected Robot: $basili" : "Selected Device: ${data["robotID"]}"
+                                                                      isTransmitter==false ? "Selected Robot: $basili" : "Selected Device: $robotID"
                                                                       
                                             ),
                                       ),
@@ -395,7 +412,7 @@ Stream<dynamic> readPort = (() async* {
                                         color: Colors.black,
                                         fontFamily: "Satoshi"
                                                                      ),
-                                                                     "RSSI: $rssi"
+                                                                     "RSSI: ${rssi}dBm"
                                                                     
                                           ),
                                       
@@ -404,7 +421,7 @@ Stream<dynamic> readPort = (() async* {
                                         width: rssi == "waiting for data" || rssi == null? 0 : currentWidth*0.025,
                                         height: currentHeight*0.03,
                                         decoration: BoxDecoration(
-                                          color: rssi != null && int.tryParse(data["rssi"]!) !=null ? (int.parse(data["rssi"]) > -80 ? Colors.green : (int.parse(data["rssi"]) > -120 ? Colors.yellow : Colors.red)) : Colors.grey ,
+                                          color: rssi != null && int.tryParse(rssi!) !=null ? (int.parse(rssi!) > -80 ? Colors.green : (int.parse(rssi!) > -120 ? Colors.yellow : Colors.red)) : Colors.grey ,
                                           borderRadius: BorderRadius.circular(20)
                                         ),
                                       )
@@ -424,7 +441,7 @@ Stream<dynamic> readPort = (() async* {
                                                                        color: Colors.black,
                                                                        fontFamily: "Satoshi"
                                                                       ),
-                                                                     isTransmitter == false ? "CO: $co" : ""
+                                                                     isTransmitter == false ? "CO: $co ppm" : ""
                                                                      ),
                                        //),
                                        Container(
@@ -432,7 +449,7 @@ Stream<dynamic> readPort = (() async* {
                                         width: nh3 == "waiting for data"|| nh3 == null || isTransmitter == true ? 0 : currentWidth*0.025,
                                         height: currentHeight*0.03,
                                         decoration: BoxDecoration(
-                                          color: nh3 != null && int.tryParse(data["nh3"]!) !=null ? (int.parse(data["nh3"]) > 500 ? Colors.red : Colors.green) : Colors.grey ,
+                                          color: nh3 != null && int.tryParse(co!) !=null ? (int.parse(co!) > 500 ? Colors.red : Colors.green) : Colors.grey ,
                                           borderRadius: BorderRadius.circular(20)
                                         ),
                                       )
@@ -452,7 +469,7 @@ Stream<dynamic> readPort = (() async* {
                                                                         color: Colors.black,
                                                                         fontFamily: "Satoshi"
                                                                        ),
-                                                                       isTransmitter==false ? "NO2: $no2 ": ""
+                                                                       isTransmitter==false ? "NO2: $no2 ppm": ""
                                                                       ),
                                         
                                         Container(
@@ -460,7 +477,7 @@ Stream<dynamic> readPort = (() async* {
                                         width: no2 == "waiting for data"|| no2 == null || isTransmitter == true ? 0 : currentWidth*0.028,
                                         height: currentHeight*0.03,
                                         decoration: BoxDecoration(
-                                          color: nh3 != null && int.tryParse(data["nh3"]!) !=null ? (int.parse(data["nh3"]) > 500 ? Colors.red : Colors.green) : Colors.grey ,
+                                          color: nh3 != null && int.tryParse(no2!) !=null ? (int.parse(no2!) > 500 ? Colors.red : Colors.green) : Colors.grey ,
                                           borderRadius: BorderRadius.circular(20)
                                         ),
                                       )
@@ -480,7 +497,7 @@ Stream<dynamic> readPort = (() async* {
                                         color: Colors.black,
                                         fontFamily: "Satoshi"
                                        ),
-                                       isTransmitter==false ? "NH3: $nh3 ": ""
+                                       isTransmitter==false ? "NH3: $nh3 ppm": ""
                                                                    ),
                                      
                                      Container(
@@ -488,7 +505,7 @@ Stream<dynamic> readPort = (() async* {
                                         width: nh3=="waiting for data" || nh3== null|| isTransmitter == true ? 0 : currentWidth*0.025,
                                         height: currentHeight*0.03,
                                         decoration: BoxDecoration(
-                                          color: nh3 != null && int.tryParse(data["nh3"]!) !=null ? (int.parse(data["nh3"]) > 500 ? Colors.red : Colors.green ) : Colors.grey ,
+                                          color: nh3 != null && int.tryParse(nh3!) !=null ? (int.parse(nh3!) > 500 ? Colors.red : Colors.green ) : Colors.grey ,
                                           borderRadius: BorderRadius.circular(20)
                                         ),
                                       )
@@ -502,7 +519,7 @@ Stream<dynamic> readPort = (() async* {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                        Text(
-                                                                     isTransmitter==false ? "TEMP: $temp ": "",
+                                                                     isTransmitter==false ? "TEMP: $temp °C": "",
                                                                      style: TextStyle(
                                         fontSize: currentHeight*0.035,
                                         color: Colors.black,
@@ -515,7 +532,7 @@ Stream<dynamic> readPort = (() async* {
                                         width: temp == "waiting for data"|| temp == null || isTransmitter == true ? 0:currentWidth*0.025,
                                         height: currentHeight*0.03,
                                         decoration: BoxDecoration(
-                                          color: temp != null && double.tryParse(data["temp"].substring(3)!) !=null ? (double.parse(temp!.substring(0,3)) > 30 ? Colors.red : (double.parse(temp!.substring(0,3)) > 15 ? Colors.orange.shade400 : Colors.blue)) : Colors.grey ,
+                                          color: temp != null && double.tryParse(temp!.substring(3)) !=null ? (double.parse(temp!.substring(0,3)) > 30 ? Colors.red : (double.parse(temp!.substring(0,3)) > 15 ? Colors.orange.shade400 : Colors.blue)) : Colors.grey ,
                                           borderRadius: BorderRadius.circular(20)
                                         ),
                                       )
@@ -536,7 +553,7 @@ Stream<dynamic> readPort = (() async* {
                                         color: Colors.black,
                                         fontFamily: "Satoshi"
                                                                      ),
-                                                                     isTransmitter == false ? "PRESSURE $pressure" : ""
+                                                                     isTransmitter == false ? "PRESSURE $pressure P" : ""
                                                                     ),
                                       ),
                                       /*Container(
@@ -563,7 +580,7 @@ Stream<dynamic> readPort = (() async* {
                                         color: Colors.black,
                                         fontFamily: "Satoshi"
                                                                      ),
-                                                                     isTransmitter==false ? "HUM: $hum ": ""
+                                                                     isTransmitter==false ? "HUM: %$hum ": ""
                                                                     ),
                                       /*Container(
                                         margin: EdgeInsets.only(left: currentWidth*0.01),
@@ -605,26 +622,14 @@ Stream<dynamic> readPort = (() async* {
                                  )
                             ],
                       
-                        );
-                        }
-                        catch(e){
-                          debugPrint(e.toString());
-                
-                          //Future.delayed(Duration(seconds: 2));
-                          //readPort.asBroadcastStream();
-                          return Center(child: Text(e.toString()),);
-                          
-                          
-
-                          
-                        }
-                      }else {
-                        return const Text('Empty data');
-                      }
-                    } 
+                        ),
+                        
+                        
+                      
+                    
                       
                       
-                      ),
+                      
                   ),
                 ],
               ),
@@ -646,7 +651,7 @@ Stream<dynamic> readPort = (() async* {
       MapTileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           initialZoomLevel: 15,
-          initialFocalLatLng: const MapLatLng(40.989290, 29.051665),
+          initialFocalLatLng: const MapLatLng(50.843915, 4.357490),
           controller: _controller,
           zoomPanBehavior: _mapZoomPanBehavior,
           initialMarkersCount: 2,

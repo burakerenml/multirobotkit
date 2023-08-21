@@ -33,8 +33,9 @@ class _ControlPageState extends State<ControlPage> {
     cameraFunc();
     super.initState();
         _data = <Model>[
-    Model("1",40.988967, 29.052070),
-    Model("2",40.987893, 29.052688),
+    Model("1",50.843935, 4.357525),
+    Model("2",50.844555, 4.356540),
+
 
 
 
@@ -56,9 +57,9 @@ class _ControlPageState extends State<ControlPage> {
     
 
   ];
-    serialPort.open(mode: SerialPortMode.write);
+    serialPort.open(mode: SerialPortMode.readWrite);
     _subscription = Gamepads.events.listen((event) {
-        final eventString = "robo$selectedRobot"+event.toString();
+        final eventString = "robo$selectedRobot$event";
         final eventBytes = utf8.encode(eventString);
         serialPort.write(Uint8List.fromList(eventBytes));
         debugPrint(eventString);
@@ -70,8 +71,6 @@ class _ControlPageState extends State<ControlPage> {
 
   @override
   void dispose() {
-    _subscription?.cancel();
-    serialPort.close();
     super.dispose();
   }
 Future<String?> cameraFunc() async{
@@ -108,6 +107,15 @@ void writePosition(Offset position) {
       appBar: AppBar(
         title: const Text("Control Page"),
         backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+
+          _subscription?.cancel();
+            serialPort.close();
+            Navigator.of(context).pop(); // Manually pop the route
+          },
+        ),
         actions: [
           IconButton(onPressed:() {
             setState(() {
@@ -138,7 +146,7 @@ void writePosition(Offset position) {
           MapTileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               initialZoomLevel: 15,
-              initialFocalLatLng: const MapLatLng(40.989290, 29.051665),
+              initialFocalLatLng: const MapLatLng(50.843915, 4.357490),
               controller: _controller,
               zoomPanBehavior: _mapZoomPanBehavior,
               initialMarkersCount: 2,
